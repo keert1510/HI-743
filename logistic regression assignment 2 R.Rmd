@@ -1,0 +1,500 @@
+---
+title: "lecture 7"
+author: "keerthi"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(nnet)
+library(ISLR2)
+```
+
+# 1. INTRODUCTION
+
+\\\< Introduce the models being used\\\>
+
+# 2 . Data
+
+\\\< Describe the data\\\>
+
+```{r}
+data = Default
+str(data)
+
+
+```
+
+## 2.1 visualizing the data 
+
+### 2.1.1 Distribution of Balance 
+
+\\\<what does this figure mean?\\\>
+
+```{r balance distribution}
+ggplot(data, aes(x =balance, fill=default)) +
+  geom_histogram(bins = 30, alpha = 0.7, position = 'identity' ) +
+  labs(title = "Distribution of balance by Default Status",
+       x = "Balance",
+       y = "Count?")
+ 
+
+
+```
+
+### 2.1.2 Distribution of Income
+
+\\\<what does this figure mean?\\\>
+
+```{r}
+ggplot(data, aes(x = income, fill = default)) +
+  geom_histogram(bins = 30, alpha = 0.7, position = 'identity') +
+  labs(title = "distribution of Income by Default Status",
+       x = "Income",
+       y = "Count")
+
+
+```
+
+```{r}
+ggplot(data, aes(x = income, fill = student)) +
+  geom_histogram(bins = 30, alpha = 0.7, position = 'identity') +
+  labs(title = "distribution of Income by Default Status",
+       x = "Income",
+       y = "Count")
+
+
+
+```
+
+### 2.1.3 Student Status by Default
+
+```{r}
+ggplot(data, aes(x = student, fill = default)) +
+  geom_bar(position ='dodge') +
+  labs(title = "distribution of Income by Student Status",
+       x = "Student",
+       y = "Count")
+
+
+
+```
+
+# 4. Logistic Regression
+
+### 4.1 Fitting the Model
+
+\\\<Describe Logistic Regression\\\>
+
+```{r}
+logit_model = glm(default ~ balance, data = data, family = binomial)
+summary(logit_model)
+
+```
+
+```{r}
+data$predicted_prob = predict(logit_model, type = "response")
+head(data)
+
+```
+
+### 4.2 Evaluate Model Performance
+
+\\\<talk about our model and evaluation metrics\\\>
+
+```{r}
+threshold = 0.5
+data$predicted_default = ifelse(data$predicted_prob > threshold, "yes", "No")
+conf_matrix = table(data$predicted_default, data$default)
+conf_matrix
+
+
+```
+
+```{r}
+accuracy = sum(diag(conf_matrix)) / sum(conf_matrix)
+accuracy
+
+
+
+```
+
+# 5. Multiple Logistic Regression
+
+## 5.1 Fitting the Model
+
+Here, we will include an **interaction term** between 'income' and 'student' that allows the effect of 'income'
+
+```{r}
+logit_mult_model = glm(default ~ balance + income * student, data=data, 
+family=binomial)
+summary(logit_mult_model)
+
+```
+
+## 5.2 Evaluating the Model
+
+\\\<talk about evaluation metrics / interpretation\\\>
+
+```{r}
+data$mult_predicted_prob = predict(logit_mult_model, type = "response")
+data$mult_predicted_default = ifelse(data$mult_predicted_prob > threshold, "Yes", "No")
+conf_matrix_mult = table(data$mult_predicted_default, data$default)
+conf_matrix_mult
+
+
+```
+
+```{r}
+accuracy_mult = sum(diag(conf_matrix_mult)) / sum(conf_matrix_mult)
+accuracy_mult
+
+
+
+```
+
+# 6. Multinomial Logistic Regression
+
+## 6.1 Load the Data
+
+```{r}
+data2 = Carseats
+data2$SalesCategory = cut(data2$Sales, breaks = 3, labels = c("Low", "Medium", "High"))
+
+
+```
+
+```{r}
+multi_model = multinom(SalesCategory ~ Price + Income +Advertising,
+data = data2)
+summary(multi_model)
+
+
+```
+
+## 6.2 Make Predictions
+
+```{r}
+data2$nomial_predicted_salesCat = predict(multi_model)
+head(data2)
+
+```
+
+## 6.3 Evaluate Model
+
+```{r}
+conf_matrix_multi = table(data2$nomial_predicted_salesCat, data2$SalesCategory)
+conf_matrix_multi
+
+
+
+```
+
+```{r}
+accuracy_multi = sum(diag(conf_matrix_multi)) / sum(conf_matrix_multi) 
+accuracy_multi
+
+
+
+```
+
+# Assignment Section
+
+### Background
+
+Diabetes is a chronic disease affecting millions of individuals worldwide. Early detection through predictive modelling can help guide prevention and treatment. in this assignment , you will use logistic regression to predict whether an individual has diabetes using basic health information.
+
+We will use the Pima Indians Diabetes Dataset, a commonly used dataset in health informatics available from the UCI Machine Learning Repository and built into the mlbench R package.
+
+## Simple Logistic Regression
+
+```{r}
+#install.packages("mlbench")
+library(mlbench)
+data("PimaIndiansDiabetes2")
+df = PimaIndiansDiabetes2
+
+
+```
+
+### Data Exploration and Summary Figures
+
+\# Preview dataset
+
+```{r}
+head(df)
+```
+
+# view the structure of the dataset
+
+```{r}
+str(df)
+```
+
+# check the dimensions
+
+```{r}
+dim(df)
+```
+
+# view column names
+
+```{r}
+colnames(df)
+```
+
+```         
+# Get summary statistics for the dataset
+```
+
+```{r}
+summary(df)
+```
+
+## **Glucose Level Distribution**
+
+```{r}
+library(ggplot2)
+
+ggplot(df, aes(x = glucose)) +
+  geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+  labs(title = "Distribution of Glucose", x = "Glucose Level", y = "Frequency") +
+  theme_minimal()
+
+```
+
+Glucose values in the dataset are unimodal and slightly right-skewed, with most levels between 80 and 140. A few values near zero may represent missing or miscoded data.
+
+## **Body Mass Index (BMI) Distribution**
+
+```{r}
+ggplot(df, aes(x = mass)) +
+  geom_histogram(binwidth = 5, fill = "darkgreen", alpha = 0.7) +
+  labs(title = "Distribution of Body Mass Index (BMI)", x = "BMI", y = "Frequency") +
+  theme_minimal()
+
+```
+
+The histogram shows the distribution of Body Mass Index (BMI) among individuals in the dataset. Most BMI values fall between 25 and 40, with a peak around 30–35, indicating that a large portion of participants are in the overweight to obese range. There are very few instances of extremely low or high BMI values. This variable could be a strong predictor of diabetes, given the established link between higher BMI and diabetes risk.
+
+## **Age Distribution**
+
+```{r}
+ggplot(df, aes(x = age)) +
+  geom_histogram(binwidth = 5, fill = "purple", alpha = 0.7) +
+  labs(title = "Distribution of Age", x = "Age (years)", y = "Frequency") +
+  theme_minimal()
+
+```
+
+The histogram of age shows a right-skewed distribution, with most individuals in the dataset being between 20 and 40 years old. The number of participants gradually decreases with increasing age, indicating fewer older individuals in the study. Age may play an important role in predicting diabetes, particularly given the increased risk with advancing age.
+
+## **Pregnancies Distribution**
+
+```{r}
+ggplot(df, aes(x = pregnant)) +
+  geom_histogram(binwidth = 1, fill = "orange", alpha = 0.7) +
+  labs(title = "Distribution of Pregnancies", x = "Number of Pregnancies", y = "Frequency") +
+  theme_minimal()
+```
+
+The histogram for number of pregnancies is right-skewed, with most individuals having fewer than 5 pregnancies. A smaller proportion of the population experienced higher pregnancy counts. This variable may reflect reproductive health history, which can be associated with diabetes risk.
+
+## **Diabetes Outcome Counts**
+
+```{r}
+ggplot(df, aes(x = diabetes)) +
+  geom_bar(fill = "tomato") +
+  labs(title = "Count of Diabetes Outcome", x = "Diabetes (0 = No, 1 = Yes)", y = "Count") +
+  theme_minimal()
+```
+
+### Fit a Simple Logistic Regression Model (Train & Test Split)
+
+\\\< Fit a logistic regression using glucose as a predictors of diabetes \\\>
+
+#load required packages
+
+```{r}
+library(mlbench)
+library(dplyr)
+
+```
+
+\##
+
+\## Attaching package: 'dplyr'
+
+\## The Following objects are masked from 'package:stats' :
+
+\##
+
+\## filter , lag
+
+\## The following objects are masked from 'package:base' :
+
+\##
+
+\## intersect, setdiff, setequal, union
+
+```{r}
+library(caret)
+```
+
+\## Loading required package: lattice
+
+```{r}
+# Load data
+data("PimaIndiansDiabetes")
+df <- PimaIndiansDiabetes
+
+```
+
+```{r}
+# Split data into training (70%) and testing (30%)
+set.seed(123)
+split <- createDataPartition(df$diabetes, p = 0.7, list = FALSE)
+train_data <- df[split, ]
+test_data <- df[-split, ]
+
+```
+
+```{r}
+# Fit logistic regression model using glucose as predictor
+logit_model <- glm(diabetes ~ glucose, data = train_data, family = "binomial")
+
+```
+
+```{r}
+# Summary of the model
+summary(logit_model)
+```
+
+### Interpret Coefficients & Apply the Model for Prediction on the test Data
+
+The logistic regression output shows that glucose is a statistically significant predictor of diabetes status. The coefficient for glucose is 0.036, which indicates that for each one-unit increase in glucose level, the log-odds of having diabetes increases by approximately 0.036. This translates to an odds ratio of about 1.037, meaning there is a 3.7% increase in the odds of having diabetes for each additional unit of glucose. The p-value for glucose is less than 0.001, confirming strong statistical significance. Additionally, the model’s residual deviance decreased from 696.28 (null model) to 580.34, suggesting that glucose explains a meaningful amount of variation in diabetes outcomes.
+
+```{r}
+# Predict probabilities on test data
+test_probs <- predict(logit_model, newdata = test_data, type = "response")
+```
+
+```{r}
+# Convert probabilities to predicted classes (threshold = 0.5)
+test_pred <- ifelse(test_probs > 0.5, "pos", "neg")
+test_pred <- factor(test_pred, levels = c("neg", "pos"))
+```
+
+```{r}
+# Confusion matrix to evaluate accuracy
+confusionMatrix(test_pred, test_data$diabetes)
+
+```
+
+The logistic regression model using glucose as the sole predictor of diabetes reveals a strong and statistically significant relationship. The estimated coefficient for glucose is 0.036, suggesting that with every 1-unit increase in glucose level, the odds of having diabetes increase by approximately 3.7 percent. The model’s p-values for both the intercept and glucose are less than 0.001, indicating that the predictor is highly significant. When applied to the test data, the model achieved an accuracy of about 74 percent. It demonstrated good sensitivity (86 percent), meaning it correctly identified most non-diabetic individuals. However, its specificity was lower at around 51 percent, indicating a tendency to misclassify some diabetic individuals as non-diabetic. The Kappa value of 0.39 reflects moderate agreement between predicted and actual outcomes. Overall, glucose alone serves as a reasonably effective predictor of diabetes, though the model’s performance could likely be improved by including additional relevant variables.## Multiple Logistic Regression
+
+#### **Fit a Multiple Logistic Regression Model (Train & Test Split)**
+
+```{r}
+# Fit multiple logistic regression model
+multi_logit_model <- glm(diabetes ~ glucose + age + mass + pregnant, 
+                         data = train_data, family = "binomial")
+
+```
+
+```{r}
+# View summary
+summary(multi_logit_model)
+
+```
+
+#### **Interpret Coefficients & Apply the Model for Prediction on Test Data**
+
+The multiple logistic regression model includes glucose, age, BMI (mass), and number of pregnancies as predictors of diabetes. All four predictors are positively associated with the odds of having diabetes. The glucose coefficient (0.031) is highly significant (p \< 0.001), indicating that for every one-unit increase in glucose, the odds of diabetes increase by approximately 3.1% (exp(0.031) ≈ 1.031). Similarly, BMI (mass) has a strong positive effect, with each one-unit increase associated with an 8.9% increase in odds (exp(0.086) ≈ 1.089). Age is also statistically significant (p = 0.031), with each additional year increasing the odds by around 2.4%. The number of pregnancies has a smaller and borderline-significant effect (p = 0.055), suggesting a possible positive trend. Overall, these results confirm that glucose, BMI, and age are important independent predictors of diabetes, while the effect of pregnancy count may be weaker.
+
+```{r}
+# Predict probabilities on test data
+test_probs_multi <- predict(multi_logit_model, newdata = test_data, type = "response")
+
+```
+
+```{r}
+# Convert probabilities to predicted class labels (threshold = 0.5)
+test_pred_multi <- ifelse(test_probs_multi > 0.5, "pos", "neg")
+test_pred_multi <- factor(test_pred_multi, levels = c("neg", "pos"))
+```
+
+```{r}
+# Evaluate with confusion matrix
+confusionMatrix(test_pred_multi, test_data$diabetes)
+```
+
+When applied to the test data, the multiple logistic regression model achieved an accuracy of 77.4%, an improvement over the simple model using only glucose. The sensitivity (true negative rate) remained high at 87.3%, meaning the model correctly identified most non-diabetic individuals. Importantly, specificity improved to 58.8%, indicating a better ability to detect actual diabetic cases compared to the simple model. The balanced accuracy rose to 73.0%, and the Kappa value increased to 0.48, suggesting stronger agreement between predictions and true outcomes. These results show that adding predictors like BMI, age, and number of pregnancies meaningfully improved the model’s predictive power and its ability to generalize to new data.
+
+## **K-Nearest Neighbors Classification**
+
+K-Nearest Neighbors (KNN) is a simple, flexible algorithm that makes predictions based on the majority class of the closest data points.
+
+Use the `caret` and `class` libraries with the `knn()` function. See our in-class lab for a worked example.
+
+#### **Prepare the Data**
+
+```{r}
+# Load libraries
+library(class)
+library(caret)
+library(dplyr)
+
+```
+
+```{r}
+# Load libraries
+library(class)
+library(caret)
+library(dplyr)
+
+# Normalize numeric predictors for KNN
+normalize <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+# Select relevant predictors
+knn_df <- df %>%
+  select(glucose, age, mass, pregnant, diabetes) %>%
+  mutate(across(-diabetes, normalize))
+
+# Train-test split
+set.seed(123)
+split <- createDataPartition(knn_df$diabetes, p = 0.7, list = FALSE)
+train_knn <- knn_df[split, ]
+test_knn <- knn_df[-split, ]
+
+# Separate predictors and labels
+train_x <- train_knn %>% select(-diabetes)
+test_x <- test_knn %>% select(-diabetes)
+train_y <- train_knn$diabetes
+test_y <- test_knn$diabetes
+
+```
+
+#### **Fit a KNN Classifier Model (Train & Test Split)**
+
+```{r}
+# Fit KNN model
+knn_pred <- knn(train = train_x, test = test_x, cl = train_y, k = 5)
+
+# Evaluate performance
+confusionMatrix(knn_pred, test_y)
+```
+
+#### **Interpret & Apply to Test Data**
+
+he K-Nearest Neighbors (KNN) model with k=5 achieved an accuracy of 76.1% on the test data, which is comparable to the multiple logistic regression model. The sensitivity was 83.3%, indicating strong performance in correctly identifying non-diabetic individuals. The specificity was 62.5%, which is slightly better than the logistic models, suggesting the KNN model also did a decent job identifying diabetic cases. The balanced accuracy of 72.9% and Kappa of 0.465 reflect moderate agreement and solid classification ability.
+
+## **Model Comparison and Discussion**
+
+When comparing models, the multiple logistic regression had the highest overall accuracy (77.4%) and the best calibrated predictive performance, especially when using glucose, BMI, age, and pregnancies. However, the KNN model offered a good alternative, especially with slightly better specificity, meaning it more accurately flagged diabetic individuals. The simple logistic regression performed adequately but was outperformed by both the KNN and multiple logistic regression models in all metrics.
+
+Overall, multiple logistic regression appears to be the strongest model for this dataset, balancing accuracy, interpretability, and predictive strength. KNN, while flexible and intuitive, might benefit from further tuning (e.g., trying different k values) or additional preprocessing steps like feature selection or PCA.
